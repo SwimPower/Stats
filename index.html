@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Affichage Admin Users</title>
+    <style>
+        /* Quelques styles basiques pour le tableau */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            font-family: Arial, sans-serif;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #444;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #message {
+            text-align: center;
+            margin-top: 20px;
+            font-family: Arial, sans-serif;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center;">Liste des Admin Users</h2>
+
+    <!-- Conteneur pour le message d'erreur ou de chargement -->
+    <div id="message">Chargement des données...</div>
+
+    <!-- Conteneur pour le tableau -->
+    <div id="table-container" style="display:none;">
+        <table id="admin-users-table">
+            <thead>
+                <tr id="table-header">
+                    <!-- Les en-têtes seront générés dynamiquement -->
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Les lignes seront générées dynamiquement -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+    // 1. URL du script PHP (si hébergé à la racine, adapter si besoin)
+    const url = "get_admin_users.php";
+
+    // 2. Fonction pour créer une cellule <td> ou <th> et y insérer du texte
+    function createCell(tagName, text) {
+        const cell = document.createElement(tagName);
+        cell.textContent = text;
+        return cell;
+    }
+
+    // 3. Fonction principale pour récupérer et afficher les données
+    async function fetchAndDisplay() {
+        try {
+            // 3.1. On fait la requête GET vers le PHP
+            const response = await fetch(url, { method: "GET" });
+
+            // 3.2. Vérifier le code HTTP
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP : ${response.status}`);
+            }
+
+            // 3.3. Lire la réponse JSON
+            const result = await response.json();
+
+            // 3.4. Si le champ success est false, on gère l’erreur remontée
+            if (!result.success) {
+                throw new Error("Erreur renvoyée depuis PHP : " + result.error);
+            }
+
+            const users = result.data; // Tableau d’objets
+
+            if (users.length === 0) {
+                document.getElementById("message").textContent = "Aucun enregistrement trouvé.";
+                return;
+            }
+
+            // 3.5. Générer dynamiquement les en-têtes à partir des clés du premier objet
+            const headerRow = document.getElementById("table-header");
+            const keys = Object.keys(users[0]);
+            keys.forEach(key => {
+                headerRow.appendChild(createCell("th", key));
+            });
+
+            // 3.6. Générer les lignes du tableau
+            const body = document.getElementById("table-body");
+            users.forEach(user => {
+                const row = document.createElement("tr");
+                keys.forEach(key => {
+                    // Pour chaque colonne, on insère la valeur correspondante
+                    row.appendChild(createCell("td", user[key]));
+                });
+                body.appendChild(row);
+            });
+
+            // 3.7. Si tout se passe bien, on cache le message et on affiche le tableau
+            document.getElementById("message").style.display = "none";
+            document.getElementById("table-container").style.display = "block";
+
+        } catch (error) {
+            // En cas d'erreur (réseau, JSON mal formé, erreur PDO, etc.)
+            document.getElementById("message").textContent =
+                "Une erreur est survenue : " + error.message;
+        }
+    }
+
+    // 4. Lancer le fetch au chargement de la page
+    window.addEventListener("DOMContentLoaded", fetchAndDisplay);
+    </script>
+</body>
+</html>
